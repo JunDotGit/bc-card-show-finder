@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BC Card Show Finder</title>
+<meta name="description" content="Find upcoming Pokémon TCG and trading card shows across British Columbia, sorted by distance from you.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%83%8F%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#17231F;
+    --ink-soft:#4B5B54;
+    --paper:#F2F5EF;
+    --surface:#FFFFFF;
+    --surface-2:#E9EEE6;
+    --pine:#1F6650;
+    --pine-ink:#124638;
+    --gold:#C9891F;
+    --gold-soft:#EFD9AC;
+    --line:#D7DED2;
+    --danger:#B3432E;
+    --focus:#2E7FB8;
+    --shadow: 0 1px 2px rgba(23,35,31,0.06), 0 6px 16px -8px rgba(23,35,31,0.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#E9F1EA;
+      --ink-soft:#A9BAB0;
+      --paper:#101714;
+      --surface:#182019;
+      --surface-2:#1F2A22;
+      --pine:#4FBF9A;
+      --pine-ink:#BEEEDC;
+      --gold:#E7B958;
+      --gold-soft:#3A2F16;
+      --line:#2B3730;
+      --danger:#E38066;
+      --focus:#6BB6E8;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 22px -10px rgba(0,0,0,0.55);
+    }
+  }
+
+  *{box-sizing:border-box;}
+  html,body{ background:var(--paper); }
+  body{
+    margin:0;
+    color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    padding-inline:16px;
+    padding-block:0 24px;
+  }
+  h1,h2,h3,.display{
+    font-family:'Big Shoulders Display',system-ui,sans-serif;
+    font-weight:800;
+    letter-spacing:0.01em;
+    text-wrap:balance;
+    line-height:1.02;
+    margin:0;
+  }
+  .mono{ font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+  a{ color:var(--pine-ink); }
+  button{ font-family:inherit; }
+  :focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  .wrap{ max-width:760px; margin:0 auto; }
+
+  header.top{
+    position:sticky; top:0; z-index:20;
+    background:var(--paper);
+    padding-block:18px 12px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:16px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--pine-ink); font-weight:600;
+  }
+  h1{ font-size:clamp(30px,7vw,42px); color:var(--ink); margin-top:2px; }
+  .tagline{ color:var(--ink-soft); font-size:14.5px; margin-top:6px; max-width:52ch; }
+
+  .locbar{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    margin-top:14px;
+  }
+  .btn{
+    appearance:none; border:1px solid var(--line); background:var(--surface);
+    color:var(--ink); border-radius:999px; padding:8px 14px;
+    font-size:13.5px; font-weight:600; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+    box-shadow:var(--shadow); text-decoration:none;
+  }
+  .btn:hover{ border-color:var(--pine); }
+  .btn.primary{ background:var(--pine); color:#fff; border-color:var(--pine); }
+  .btn.primary:hover{ filter:brightness(1.06); }
+  .btn.ghost{ box-shadow:none; }
+  select.citysel{
+    appearance:none; border:1px solid var(--line); background:var(--surface);
+    color:var(--ink); border-radius:999px; padding:8px 30px 8px 14px; font-size:13.5px;
+    font-weight:600; font-family:inherit;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234B5B54'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center;
+  }
+  .status-line{ font-size:12.5px; color:var(--ink-soft); margin-top:8px; min-height:16px; }
+  .radius-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .chip{
+    border:1px solid var(--line); background:var(--surface); color:var(--ink-soft);
+    border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  .chip[aria-pressed="true"]{ background:var(--pine); border-color:var(--pine); color:#fff; }
+
+  .viewtoggle{
+    display:flex; background:var(--surface-2); border-radius:10px; padding:3px; gap:2px;
+    width:fit-content; margin:18px 0 14px;
+  }
+  .viewtoggle button{
+    border:0; background:transparent; padding:7px 16px; border-radius:8px;
+    font-weight:700; font-size:13.5px; color:var(--ink-soft); cursor:pointer;
+  }
+  .viewtoggle button[aria-selected="true"]{ background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
+
+  .month-head{
+    font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:12.5px;
+    letter-spacing:0.1em; text-transform:uppercase; color:var(--pine-ink);
+    margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line);
+  }
+  .month-head:first-child{ margin-top:0; }
+
+  .card{
+    display:flex; gap:12px; background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; padding:12px 14px; margin-bottom:10px; box-shadow:var(--shadow);
+    align-items:flex-start;
+  }
+  .datebadge{
+    flex:none; width:52px; text-align:center; background:var(--surface-2);
+    border-radius:9px; padding:7px 4px; font-family:'IBM Plex Mono',monospace;
+  }
+  .datebadge .dow{ font-size:10px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.06em; }
+  .datebadge .dnum{ font-size:19px; font-weight:700; line-height:1.1; }
+  .datebadge .mon{ font-size:10px; color:var(--ink-soft); }
+  .card-body{ flex:1; min-width:0; }
+  .card-title-row{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .card-title{ font-family:'Big Shoulders Display',sans-serif; font-weight:700; font-size:20px; }
+  .dist{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--pine-ink);
+    white-space:nowrap;
+  }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:6px 10px; margin-top:4px; font-size:12.8px; color:var(--ink-soft); }
+  .meta-row span{ display:inline-flex; align-items:center; gap:4px; }
+  .notes{ font-size:13px; color:var(--ink-soft); margin-top:5px; }
+  .venue{ font-size:12px; color:var(--ink-soft); margin-top:2px; opacity:0.85; }
+  .card-links{ margin-top:8px; display:flex; gap:14px; align-items:center; }
+  .card-links a{ font-size:12.5px; font-weight:600; text-decoration:none; }
+  .card-links a:hover{ text-decoration:underline; }
+
+  .empty{ color:var(--ink-soft); font-size:14px; padding:30px 4px; text-align:center; }
+
+  .cal{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px; box-shadow:var(--shadow); }
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .cal-head .navbtn{ border:1px solid var(--line); background:var(--surface-2); border-radius:8px; width:30px; height:30px; cursor:pointer; font-size:15px; color:var(--ink); }
+  .cal-title{ font-family:'Big Shoulders Display',sans-serif; font-weight:700; font-size:19px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-dow{ font-size:10px; text-align:center; color:var(--ink-soft); font-weight:700; letter-spacing:0.05em; padding-bottom:4px; }
+  .cal-cell{
+    aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft);
+    border:1px solid transparent; cursor:default; position:relative; gap:2px;
+  }
+  .cal-cell.inmonth{ color:var(--ink); }
+  .cal-cell.has-events{ cursor:pointer; background:var(--surface-2); }
+  .cal-cell.has-events:hover{ border-color:var(--pine); }
+  .cal-cell.today{ border-color:var(--gold); }
+  .cal-cell.selected{ background:var(--pine); color:#fff !important; }
+  .dots{ display:flex; gap:2px; }
+  .dot{ width:5px; height:5px; border-radius:999px; background:var(--pine); }
+  .cal-cell.selected .dot{ background:#fff; }
+
+  .daylist{ margin-top:16px; }
+  .daylist-head{ font-size:13px; font-weight:700; color:var(--ink-soft); margin-bottom:8px; }
+
+  .suggest{
+    margin-top:26px; border-top:1px dashed var(--line); padding-top:18px;
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:16px; box-shadow:var(--shadow);
+  }
+  .suggest-title{ font-family:'Big Shoulders Display',sans-serif; font-weight:700; font-size:19px; }
+  .suggest-copy{ color:var(--ink-soft); font-size:13.5px; margin:6px 0 12px; max-width:56ch; }
+
+  footer{ margin-top:34px; padding-top:16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft); }
+  footer a{ color:var(--ink-soft); }
+
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">British Columbia · Maintained with the community's help</div>
+    <h1>BC Card Show Finder</h1>
+    <p class="tagline">Every Pokémon TCG &amp; trading-card show we know about across BC — sorted by how far it is from you.</p>
+
+    <div class="locbar">
+      <button class="btn primary" id="btn-geo">📍 Use my location</button>
+      <select class="citysel" id="city-picker">
+        <option value="">…or pick a city near you</option>
+      </select>
+      <button class="btn ghost" id="btn-clear-loc" hidden>Clear</button>
+    </div>
+    <div class="radius-row" id="radius-row" hidden>
+      <button class="chip" data-radius="50">Within 50 km</button>
+      <button class="chip" data-radius="150">Within 150 km</button>
+      <button class="chip" data-radius="" aria-pressed="true">All of BC</button>
+    </div>
+    <div class="status-line" id="status-line"></div>
+  </header>
+
+  <div class="viewtoggle" role="tablist">
+    <button role="tab" aria-selected="true" id="tab-list">List</button>
+    <button role="tab" aria-selected="false" id="tab-cal">Calendar</button>
+  </div>
+
+  <div id="view-list"></div>
+
+  <div id="view-cal" hidden>
+    <div class="cal" id="cal-root"></div>
+    <div class="daylist" id="cal-daylist"></div>
+  </div>
+
+  <div class="suggest">
+    <div class="suggest-title">Know a show that's missing?</div>
+    <p class="suggest-copy">If it's public information we haven't picked up yet — a small local show, a new date — tell us on GitHub. We check it against a public source before adding it to the list.</p>
+    <a class="btn primary" href="https://github.com/JunDotGit/bc-card-show-finder/issues/new?template=suggest-a-show.yml" target="_blank" rel="noopener">Suggest a show on GitHub →</a>
+  </div>
+
+  <footer>
+    Data gathered from <a href="https://tcgshowsnearme.com/events/d/canada/british-columbia" target="_blank" rel="noopener">tcgshowsnearme.com</a> and public listings, refreshed periodically. Distances use each venue's address where we found one, otherwise the city centre. Dates, prices and table counts can change — check each show's own link before you drive out. Source &amp; suggestions: <a href="https://github.com/JunDotGit/bc-card-show-finder" target="_blank" rel="noopener">github.com/JunDotGit/bc-card-show-finder</a>.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CITY_COORDS = {
+    "Vancouver":        {lat:49.2827, lng:-123.1207},
+    "North Vancouver":  {lat:49.3163, lng:-123.0693},
+    "Burnaby":          {lat:49.2488, lng:-122.9805},
+    "Richmond":         {lat:49.1666, lng:-123.1336},
+    "Surrey":           {lat:49.1913, lng:-122.8490},
+    "Port Moody":       {lat:49.2838, lng:-122.8306},
+    "Abbotsford":       {lat:49.0504, lng:-122.3045},
+    "Langley":          {lat:49.1042, lng:-122.6604},
+    "Victoria":         {lat:48.4284, lng:-123.3656},
+    "Vernon":           {lat:50.2670, lng:-119.2720}
+  };
+  var CITY_NAMES = Object.keys(CITY_COORDS);
+
+  var SHOWS = [
+    {id:"seed-1",   name:"Ripcity Cardshow", city:"Richmond", venue:"Executive Hotel Vancouver Airport, 7311 Westminster Hwy", lat:49.1866, lng:-123.14, start:"2026-09-27", end:"2026-09-27", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/ripcity-cardshow-richmond-2026-09-27"},
+    {id:"seed-2",   name:"Vancity Card Show 2026", city:"Vancouver", venue:"Vancouver Convention Centre West, 1055 Canada Place", lat:49.2889, lng:-123.1119, start:"2026-10-02", end:"2026-10-04", time:"10:00–18:00 (Sun to 17:00)", price:"", notes:"600 vendor tables", url:"https://tcgshowsnearme.com/events/vancity-card-show-2026-vancouver-2026-10-02"},
+    {id:"seed-3",   name:"Metamiraj Card Show", city:"Surrey", venue:"15269 104 Ave, Surrey (Guildford)", lat:49.1862, lng:-122.8168, start:"2026-10-10", end:"2026-10-10", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/metamiraj-card-show-surrey-2026-10-10"},
+    {id:"seed-4",   name:"Casino Card Show", city:"Burnaby", venue:"Grand Villa Casino, 4331 Dominion St", lat:49.25674, lng:-123.00728, start:"2026-10-10", end:"2026-10-11", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/casino-card-show-burnaby-2026-10-10"},
+    {id:"seed-5",   name:"Super Collector Town Card Show", city:"Burnaby", venue:"Nikkei National Museum & Cultural Centre, 6688 Southoaks Cres", lat:49.2185, lng:-122.967, start:"2026-10-10", end:"2026-10-11", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/super-collector-town-card-show-burnaby-2026-10-10"},
+    {id:"seed-6",   name:"V.I. Collectibles Show", city:"Victoria", venue:"3277 Douglas St", lat:48.4453, lng:-123.367, start:"2026-10-10", end:"2026-10-10", time:"10:00–15:00", price:"", notes:"Pokémon &amp; other collectibles vendors", url:"https://www.vicollectibles.com/shows"},
+    {id:"seed-7",   name:"Next Gen Card Show", city:"Port Moody", venue:"3012 Murray St", lat:49.2831, lng:-122.842, start:"2026-10-17", end:"2026-10-17", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/next-gen-card-show-port-moody-2026-10-17"},
+    {id:"seed-8",   name:"Burnaby Card Show", city:"Burnaby", venue:"Bonsor Recreation Complex, 6550 Bonsor Ave", lat:49.22426, lng:-122.99661, start:"2026-10-18", end:"2026-10-18", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/burnaby-card-show-burnaby-2026-10-18"},
+    {id:"seed-9",   name:"West Van Card Show @ UBC", city:"Vancouver", venue:"Robert H. Lee Alumni Centre, 6133 University Blvd", lat:49.2676, lng:-123.2497, start:"2026-10-18", end:"2026-10-18", time:"10:30–15:30", price:"$5", notes:"Free admission for kids", url:"https://tcgshowsnearme.com/events/west-van-card-show-ubc-vancouver-2026-10-18"},
+    {id:"seed-10",  name:"National Collective Convention", city:"Abbotsford", venue:"1190 Cornell Ave", lat:49.048, lng:-122.321, start:"2026-10-24", end:"2026-10-25", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/national-collective-convention-abbotsford-2026-10-24"},
+    {id:"seed-11",  name:"West Van Card Show @ the Shipyards", city:"North Vancouver", venue:"The Shipyards, 115 Victory Ship Way", lat:49.309, lng:-123.0827, start:"2026-10-31", end:"2026-10-31", time:"11:00–16:00", price:"$10", notes:"100 vendor tables · Halloween event · free admission for kids", url:"https://tcgshowsnearme.com/events/west-van-card-show-the-shipyards-north-vancouver-2026-10-31"},
+    {id:"seed-12",  name:"Collector's Fest", city:"Richmond", venue:"Executive Hotel Vancouver Airport, 7311 Westminster Hwy", lat:49.1866, lng:-123.14, start:"2026-10-31", end:"2026-11-01", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/collector-s-fest-richmond-2026-10-31"},
+    {id:"seed-13",  name:"Burnaby Card Show", city:"Burnaby", venue:"Bonsor Recreation Complex, 6550 Bonsor Ave", lat:49.22426, lng:-122.99661, start:"2026-11-01", end:"2026-11-01", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/burnaby-card-show-burnaby-2026-11-01"},
+    {id:"seed-14",  name:"Metamiraj Card Show", city:"Surrey", venue:"15269 104 Ave, Surrey (Guildford)", lat:49.1862, lng:-122.8168, start:"2026-11-07", end:"2026-11-07", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/metamiraj-card-show-surrey-2026-11-07"},
+    {id:"seed-15",  name:"Vernon Comic Con — Official & Collectibles Show", city:"Vernon", venue:"3310 37th Ave", lat:50.2635, lng:-119.272, start:"2026-11-07", end:"2026-11-07", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/vernon-comic-con-official-collectibles-show-vernon-2026-11-07"},
+    {id:"seed-16",  name:"Sports Collectors Convention", city:"Langley", venue:"Langley Events Centre, 7888 200 St", lat:49.14583, lng:-122.66611, start:"2026-11-13", end:"2026-11-15", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/sports-collectors-convention-langley-2026-11-13"},
+    {id:"seed-17",  name:"Collector's Fest", city:"Richmond", venue:"Executive Hotel Vancouver Airport, 7311 Westminster Hwy", lat:49.1866, lng:-123.14, start:"2026-11-22", end:"2026-11-22", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/collector-s-fest-richmond-2026-11-22"},
+    {id:"seed-18",  name:"Next Gen Card Show", city:"Port Moody", venue:"3012 Murray St", lat:49.2831, lng:-122.842, start:"2026-11-22", end:"2026-11-22", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/next-gen-card-show-port-moody-2026-11-22"},
+    {id:"seed-19",  name:"West Van Card Show @ UBC", city:"Vancouver", venue:"Robert H. Lee Alumni Centre, 6133 University Blvd", lat:49.2676, lng:-123.2497, start:"2026-11-29", end:"2026-11-29", time:"10:30–15:30", price:"$5", notes:"Free admission for kids", url:"https://tcgshowsnearme.com/events/west-van-card-show-ubc-vancouver-2026-11-29"},
+    {id:"seed-20",  name:"Metamiraj Card Show", city:"Surrey", venue:"15269 104 Ave, Surrey (Guildford)", lat:49.1862, lng:-122.8168, start:"2026-12-13", end:"2026-12-13", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/metamiraj-card-show-surrey-2026-12-13"},
+    {id:"seed-21",  name:"Burnaby Card Show", city:"Burnaby", venue:"Bonsor Recreation Complex, 6550 Bonsor Ave", lat:49.22426, lng:-122.99661, start:"2026-12-13", end:"2026-12-13", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/burnaby-card-show-burnaby-2026-12-13"},
+    {id:"seed-22",  name:"West Van Card Show @ UBC", city:"Vancouver", venue:"Robert H. Lee Alumni Centre, 6133 University Blvd", lat:49.2676, lng:-123.2497, start:"2026-12-19", end:"2026-12-19", time:"10:30–15:30", price:"$10", notes:"70 vendor tables · free admission for kids", url:"https://tcgshowsnearme.com/events/west-van-card-show-ubc-vancouver-2026-12-19"},
+    {id:"seed-23",  name:"Next Gen Card Show", city:"Port Moody", venue:"3012 Murray St", lat:49.2831, lng:-122.842, start:"2026-12-20", end:"2026-12-20", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/next-gen-card-show-port-moody-2026-12-20"},
+    {id:"seed-24",  name:"Casino Card Show", city:"Burnaby", venue:"Grand Villa Casino, 4331 Dominion St", lat:49.25674, lng:-123.00728, start:"2026-12-27", end:"2026-12-28", time:"", price:"", notes:"", url:"https://tcgshowsnearme.com/events/casino-card-show-burnaby-2026-12-27"},
+    {id:"seed-25",  name:"West Van Card Show @ UBC", city:"Vancouver", venue:"Robert H. Lee Alumni Centre, 6133 University Blvd", lat:49.2676, lng:-123.2497, start:"2027-01-16", end:"2027-01-16", time:"10:30–15:30", price:"$10", notes:"90 vendor tables · free admission for kids", url:"https://tcgshowsnearme.com/events/west-van-card-show-ubc-vancouver-2027-01-16"},
+    {id:"seed-26",  name:"MEGA MIRAJ Show", city:"Surrey", venue:"12350 Pattullo Place", lat:49.2115, lng:-122.8935, start:"2027-02-06", end:"2027-02-07", time:"", price:"", notes:"By Metamiraj", url:"https://tcgshowsnearme.com/events/mega-miraj-show-day-1-by-metamiraj-surrey-2027-02-06"}
+  ];
+
+  // ---------- state ----------
+  var state = {
+    view: "list",
+    userLoc: null,        // {lat,lng,label}
+    radius: null,         // km or null
+    calMonth: (function(){ var d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })(),
+    calSelected: null
+  };
+
+  function loadLocalLoc(){
+    try{
+      var raw = localStorage.getItem("bccardshows.loc");
+      if(raw){ state.userLoc = JSON.parse(raw); }
+    }catch(e){}
+  }
+  function saveLocalLoc(){
+    try{
+      if(state.userLoc) localStorage.setItem("bccardshows.loc", JSON.stringify(state.userLoc));
+      else localStorage.removeItem("bccardshows.loc");
+    }catch(e){}
+  }
+
+  function haversine(a,b){
+    var R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+    var la1=a.lat*Math.PI/180, la2=b.lat*Math.PI/180;
+    var h = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;
+    return R*2*Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+  }
+
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+
+  function upcoming(shows){
+    var t = todayStr();
+    return shows.filter(function(s){ return s.end >= t; });
+  }
+
+  function withDistance(shows){
+    return shows.map(function(s){
+      var coord = (typeof s.lat==="number" && typeof s.lng==="number") ? {lat:s.lat, lng:s.lng} : CITY_COORDS[s.city];
+      var dist = (state.userLoc && coord) ? haversine(state.userLoc, coord) : null;
+      return Object.assign({}, s, {_dist: dist});
+    });
+  }
+
+  function applyRadius(shows){
+    if(!state.radius || !state.userLoc) return shows;
+    return shows.filter(function(s){ return s._dist===null || s._dist<=state.radius; });
+  }
+
+  function sortShows(shows){
+    return shows.slice().sort(function(a,b){
+      if(state.userLoc){
+        var da = a._dist===null ? Infinity : a._dist, db = b._dist===null ? Infinity : b._dist;
+        if(da!==db) return da-db;
+      }
+      return a.start.localeCompare(b.start);
+    });
+  }
+
+  function fmtDate(iso){
+    var d = new Date(iso+"T00:00:00");
+    return {
+      dow: d.toLocaleDateString("en-CA",{weekday:"short"}),
+      dnum: d.getDate(),
+      mon: d.toLocaleDateString("en-CA",{month:"short"})
+    };
+  }
+  function monthLabel(iso){
+    var d = new Date(iso+"T00:00:00");
+    return d.toLocaleDateString("en-CA",{month:"long", year:"numeric"});
+  }
+
+  function escapeHtml(str){
+    return String(str==null?"":str).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // ---------- render: list ----------
+  function cardHtml(s){
+    var d = fmtDate(s.start);
+    var distTxt = s._dist===null ? "" : (s._dist<1 ? "&lt;1 km" : Math.round(s._dist)+" km");
+    var metaBits = [];
+    metaBits.push("<span>📍 "+escapeHtml(s.city)+"</span>");
+    if(s.time) metaBits.push("<span>🕘 "+escapeHtml(s.time)+"</span>");
+    if(s.price) metaBits.push("<span>🎟️ "+escapeHtml(s.price)+"</span>");
+    return (
+      '<div class="card" data-id="'+escapeHtml(s.id)+'">'+
+        '<div class="datebadge"><div class="dow">'+d.dow+'</div><div class="dnum">'+d.dnum+'</div><div class="mon">'+d.mon+'</div></div>'+
+        '<div class="card-body">'+
+          '<div class="card-title-row"><div class="card-title">'+escapeHtml(s.name)+'</div>'+
+            (distTxt ? '<div class="dist">'+distTxt+'</div>' : '')+
+          '</div>'+
+          '<div class="meta-row">'+metaBits.join("")+'</div>'+
+          (s.venue ? '<div class="venue">'+escapeHtml(s.venue)+'</div>' : '')+
+          (s.notes ? '<div class="notes">'+s.notes+'</div>' : '')+
+          '<div class="card-links">'+
+            (s.url ? '<a href="'+escapeHtml(s.url)+'" target="_blank" rel="noopener">Details &amp; tickets →</a>' : '')+
+          '</div>'+
+        '</div>'+
+      '</div>'
+    );
+  }
+
+  function renderList(){
+    var root = document.getElementById("view-list");
+    var shows = sortShows(applyRadius(withDistance(upcoming(SHOWS))));
+    if(shows.length===0){
+      root.innerHTML = '<div class="empty">No upcoming shows in this range yet. Try widening the radius, or suggest one below.</div>';
+      return;
+    }
+    var html = "", curMonth = "";
+    shows.forEach(function(s){
+      if(!state.userLoc){
+        var ml = monthLabel(s.start);
+        if(ml!==curMonth){ html += '<div class="month-head">'+ml+'</div>'; curMonth = ml; }
+      }
+      html += cardHtml(s);
+    });
+    root.innerHTML = html;
+  }
+
+  // ---------- render: calendar ----------
+  function isoDate(y,m,d){ return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0"); }
+
+  function showsOnDate(iso, shows){
+    return shows.filter(function(s){ return s.start<=iso && iso<=s.end; });
+  }
+
+  function renderCalendar(){
+    var shows = upcoming(SHOWS);
+    var root = document.getElementById("cal-root");
+    var y = state.calMonth.getFullYear(), m = state.calMonth.getMonth();
+    var first = new Date(y,m,1);
+    var startOffset = first.getDay();
+    var daysInMonth = new Date(y,m+1,0).getDate();
+    var today = todayStr();
+
+    var head = '<div class="cal-head">'+
+      '<button class="navbtn" id="cal-prev">‹</button>'+
+      '<div class="cal-title">'+first.toLocaleDateString("en-CA",{month:"long",year:"numeric"})+'</div>'+
+      '<button class="navbtn" id="cal-next">›</button>'+
+    '</div>';
+
+    var grid = '<div class="cal-grid">';
+    ["Su","Mo","Tu","We","Th","Fr","Sa"].forEach(function(dn){ grid += '<div class="cal-dow">'+dn+'</div>'; });
+    for(var i=0;i<startOffset;i++){ grid += '<div class="cal-cell"></div>'; }
+    for(var day=1; day<=daysInMonth; day++){
+      var iso = isoDate(y,m,day);
+      var dayShows = showsOnDate(iso, shows);
+      var cls = "cal-cell inmonth";
+      if(dayShows.length) cls += " has-events";
+      if(iso===today) cls += " today";
+      if(iso===state.calSelected) cls += " selected";
+      var dots = dayShows.slice(0,3).map(function(){ return '<div class="dot"></div>'; }).join("");
+      grid += '<div class="'+cls+'" data-date="'+iso+'">'+day+(dots?'<div class="dots">'+dots+'</div>':'')+'</div>';
+    }
+    grid += '</div>';
+    root.innerHTML = head+grid;
+
+    document.getElementById("cal-prev").onclick = function(){ state.calMonth = new Date(y,m-1,1); renderCalendar(); };
+    document.getElementById("cal-next").onclick = function(){ state.calMonth = new Date(y,m+1,1); renderCalendar(); };
+    root.querySelectorAll(".cal-cell.has-events").forEach(function(cell){
+      cell.onclick = function(){
+        state.calSelected = cell.getAttribute("data-date");
+        renderCalendar();
+        renderDayList();
+      };
+    });
+    renderDayList();
+  }
+
+  function renderDayList(){
+    var wrap = document.getElementById("cal-daylist");
+    if(!state.calSelected){ wrap.innerHTML = '<div class="empty">Tap a highlighted day to see what’s on.</div>'; return; }
+    var shows = withDistance(showsOnDate(state.calSelected, SHOWS));
+    shows = sortShows(shows);
+    var label = new Date(state.calSelected+"T00:00:00").toLocaleDateString("en-CA",{weekday:"long", month:"long", day:"numeric"});
+    var html = '<div class="daylist-head">'+label+'</div>';
+    html += shows.map(cardHtml).join("") || '<div class="empty">Nothing found for this day.</div>';
+    wrap.innerHTML = html;
+  }
+
+  // ---------- location controls ----------
+  function populateCityPicker(){
+    var sel = document.getElementById("city-picker");
+    CITY_NAMES.forEach(function(name){
+      var opt = document.createElement("option");
+      opt.value = name; opt.textContent = name;
+      sel.appendChild(opt);
+    });
+  }
+
+  function setUserLoc(loc){
+    state.userLoc = loc;
+    saveLocalLoc();
+    document.getElementById("btn-clear-loc").hidden = !loc;
+    document.getElementById("radius-row").hidden = !loc;
+    renderAll();
+  }
+
+  function setStatus(msg){ document.getElementById("status-line").textContent = msg || ""; }
+
+  function initLocationControls(){
+    populateCityPicker();
+    if(state.userLoc && state.userLoc.label){
+      setStatus("Showing distances from "+state.userLoc.label+".");
+      document.getElementById("btn-clear-loc").hidden = false;
+      document.getElementById("radius-row").hidden = false;
+      var sel = document.getElementById("city-picker");
+      if(state.userLoc.city) sel.value = state.userLoc.city;
+    }
+
+    document.getElementById("btn-geo").addEventListener("click", function(){
+      if(!navigator.geolocation){ setStatus("Your browser doesn't support location — pick a city instead."); return; }
+      setStatus("Getting your location…");
+      navigator.geolocation.getCurrentPosition(function(pos){
+        setUserLoc({lat:pos.coords.latitude, lng:pos.coords.longitude, label:"your location"});
+        setStatus("Showing distances from your location.");
+      }, function(err){
+        setStatus("Couldn't get your location (" + (err && err.message ? err.message : "permission denied") + ") — pick a city instead.");
+      }, {timeout:8000});
+    });
+
+    document.getElementById("city-picker").addEventListener("change", function(e){
+      var city = e.target.value;
+      if(!city){ setUserLoc(null); return; }
+      var c = CITY_COORDS[city];
+      setUserLoc({lat:c.lat, lng:c.lng, label:city, city:city});
+      setStatus("Showing distances from "+city+".");
+    });
+
+    document.getElementById("btn-clear-loc").addEventListener("click", function(){
+      document.getElementById("city-picker").value = "";
+      setStatus("");
+      setUserLoc(null);
+    });
+
+    document.querySelectorAll(".chip").forEach(function(chip){
+      chip.addEventListener("click", function(){
+        document.querySelectorAll(".chip").forEach(function(c){ c.setAttribute("aria-pressed","false"); });
+        chip.setAttribute("aria-pressed","true");
+        var r = chip.getAttribute("data-radius");
+        state.radius = r ? parseInt(r,10) : null;
+        renderAll();
+      });
+    });
+  }
+
+  // ---------- view toggle ----------
+  function initViewToggle(){
+    document.getElementById("tab-list").addEventListener("click", function(){ switchView("list"); });
+    document.getElementById("tab-cal").addEventListener("click", function(){ switchView("calendar"); });
+  }
+  function switchView(v){
+    state.view = v;
+    document.getElementById("tab-list").setAttribute("aria-selected", v==="list");
+    document.getElementById("tab-cal").setAttribute("aria-selected", v==="calendar");
+    document.getElementById("view-list").hidden = v!=="list";
+    document.getElementById("view-cal").hidden = v!=="calendar";
+    renderAll();
+  }
+
+  // ---------- master render ----------
+  function renderAll(){
+    if(state.view==="list") renderList(); else renderCalendar();
+  }
+
+  // ---------- boot ----------
+  loadLocalLoc();
+  initLocationControls();
+  initViewToggle();
+  renderAll();
+})();
+</script>
+</body>
+</html>

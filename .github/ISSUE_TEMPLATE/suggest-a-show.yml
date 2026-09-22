@@ -1,0 +1,54 @@
+name: Suggest a show
+description: Tell us about a BC Pokémon TCG / trading card show that's missing from the list.
+title: "[Show] "
+labels: ["suggestion"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Show name
+      placeholder: e.g. Kootenay Card Show
+    validations:
+      required: true
+  - type: input
+    id: city
+    attributes:
+      label: City / area
+      placeholder: e.g. Nelson, BC
+    validations:
+      required: true
+  - type: input
+    id: venue
+    attributes:
+      label: Venue name and address (if known)
+      placeholder: e.g. Nelson Community Complex, 305 Hall St
+  - type: input
+    id: dates
+    attributes:
+      label: Date(s)
+      placeholder: e.g. 2026-11-14 or 2026-11-14 to 2026-11-15
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: Hours (if known)
+      placeholder: e.g. 10:00–16:00
+  - type: input
+    id: price
+    attributes:
+      label: Price (if known)
+      placeholder: e.g. $5 or Free
+  - type: input
+    id: source
+    attributes:
+      label: Link to a public source (event page, Facebook, Instagram, poster, etc.)
+      description: A link we can use to verify this before adding it.
+      placeholder: https://…
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else worth knowing
+      placeholder: Table count, kid-friendly, parking, etc.
