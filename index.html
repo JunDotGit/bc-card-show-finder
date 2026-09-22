@@ -191,6 +191,38 @@
   footer{ margin-top:34px; padding-top:16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft); }
   footer a{ color:var(--ink-soft); }
 
+
+  .card{ cursor:pointer; }
+  .card:hover{ border-color:var(--pine); }
+  .card:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(10,14,12,0.55); backdrop-filter:blur(2px);
+    display:flex; align-items:flex-end; justify-content:center; z-index:100;
+  }
+  @media (min-width:640px){
+    .modal-overlay{ align-items:center; padding:16px; }
+  }
+  .modal{
+    background:var(--surface); width:100%; max-width:480px; max-height:88vh; overflow-y:auto;
+    border-radius:16px 16px 0 0; padding:22px 20px calc(20px + env(safe-area-inset-bottom,0px));
+    box-shadow:var(--shadow); position:relative;
+  }
+  @media (min-width:640px){
+    .modal{ border-radius:16px; }
+  }
+  .modal-close{
+    position:absolute; top:14px; right:14px; border:0; background:var(--surface-2); color:var(--ink);
+    width:30px; height:30px; border-radius:999px; font-size:16px; cursor:pointer; line-height:1;
+  }
+  .modal-title{ font-family:'Big Shoulders Display',sans-serif; font-weight:800; font-size:26px; padding-right:34px; }
+  .modal-date{ font-family:'IBM Plex Mono',monospace; color:var(--pine-ink); font-weight:600; font-size:13.5px; margin-top:4px; }
+  .modal-section{ margin-top:16px; }
+  .modal-label{ font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:3px; }
+  .modal-value{ font-size:14.5px; }
+  .modal-notes{ font-size:14px; color:var(--ink-soft); line-height:1.5; }
+  .modal-actions{ margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; }
+
   [hidden]{ display:none !important; }
 </style>
 </head>
@@ -232,6 +264,11 @@
     <div class="suggest-title">Know a show that's missing?</div>
     <p class="suggest-copy">If it's public information we haven't picked up yet — a small local show, a new date — tell us on GitHub. We check it against a public source before adding it to the list.</p>
     <a class="btn primary" href="https://github.com/JunDotGit/bc-card-show-finder/issues/new?template=suggest-a-show.yml" target="_blank" rel="noopener">Suggest a show on GitHub →</a>
+  </div>
+
+
+  <div class="modal-overlay" id="modal-overlay" hidden>
+    <div class="modal" id="modal-content" role="dialog" aria-modal="true"></div>
   </div>
 
   <footer>
@@ -376,7 +413,7 @@
     if(s.time) metaBits.push("<span>🕘 "+escapeHtml(s.time)+"</span>");
     if(s.price) metaBits.push("<span>🎟️ "+escapeHtml(s.price)+"</span>");
     return (
-      '<div class="card" data-id="'+escapeHtml(s.id)+'">'+
+      '<div class="card" data-id="'+escapeHtml(s.id)+'" tabindex="0" role="button" aria-haspopup="dialog">'+
         '<div class="datebadge"><div class="dow">'+d.dow+'</div><div class="dnum">'+d.dnum+'</div><div class="mon">'+d.mon+'</div></div>'+
         '<div class="card-body">'+
           '<div class="card-title-row"><div class="card-title">'+escapeHtml(s.name)+'</div>'+
@@ -385,9 +422,7 @@
           '<div class="meta-row">'+metaBits.join("")+'</div>'+
           (s.venue ? '<div class="venue">'+escapeHtml(s.venue)+'</div>' : '')+
           (s.notes ? '<div class="notes">'+s.notes+'</div>' : '')+
-          '<div class="card-links">'+
-            (s.url ? '<a href="'+escapeHtml(s.url)+'" target="_blank" rel="noopener">Details &amp; tickets →</a>' : '')+
-          '</div>'+
+
         '</div>'+
       '</div>'
     );
@@ -471,6 +506,71 @@
     html += shows.map(cardHtml).join("") || '<div class="empty">Nothing found for this day.</div>';
     wrap.innerHTML = html;
   }
+
+
+  function dateRangeLabel(s){
+    var a = fmtDate(s.start);
+    if(s.start===s.end) return a.dow+", "+a.mon+" "+a.dnum;
+    var b = fmtDate(s.end);
+    if(a.mon===b.mon) return a.dow+" "+a.mon+" "+a.dnum+"\u2013"+b.dnum;
+    return a.dow+" "+a.mon+" "+a.dnum+" \u2013 "+b.dow+" "+b.mon+" "+b.dnum;
+  }
+
+  function detailHtml(s){
+    var rows = "";
+    rows += '<div class="modal-section"><div class="modal-label">Where</div><div class="modal-value">'+
+      escapeHtml(s.venue || s.city)+(s.venue ? ' <span style="color:var(--ink-soft)">('+escapeHtml(s.city)+')</span>' : '')+
+      '</div></div>';
+    rows += '<div class="modal-section"><div class="modal-label">When</div><div class="modal-value">'+dateRangeLabel(s)+
+      (s.time ? ', '+escapeHtml(s.time) : '')+'</div></div>';
+    if(s.price){
+      rows += '<div class="modal-section"><div class="modal-label">Admission</div><div class="modal-value">'+escapeHtml(s.price)+'</div></div>';
+    }
+    if(s.notes){
+      rows += '<div class="modal-section"><div class="modal-label">Good to know</div><div class="modal-notes">'+s.notes+'</div></div>';
+    }
+    return (
+      '<button class="modal-close" id="modal-close" aria-label="Close">\u2715</button>'+
+      '<div class="modal-title">'+escapeHtml(s.name)+'</div>'+
+      '<div class="modal-date">'+dateRangeLabel(s)+'</div>'+
+      rows+
+      '<div class="modal-actions">'+
+        (s.url ? '<a class="btn primary" href="'+escapeHtml(s.url)+'" target="_blank" rel="noopener">Check official listing \u2197</a>' : '')+
+        '<button class="btn ghost" id="modal-close-btn">Close</button>'+
+      '</div>'
+    );
+  }
+
+  function openDetail(id){
+    var s = SHOWS.find(function(x){ return x.id===id; });
+    if(!s) return;
+    var overlay = document.getElementById("modal-overlay");
+    document.getElementById("modal-content").innerHTML = detailHtml(s);
+    overlay.hidden = false;
+    document.getElementById("modal-close").addEventListener("click", closeDetail);
+    document.getElementById("modal-close-btn").addEventListener("click", closeDetail);
+  }
+
+  function closeDetail(){
+    document.getElementById("modal-overlay").hidden = true;
+  }
+
+  document.getElementById("modal-overlay").addEventListener("click", function(e){
+    if(e.target.id==="modal-overlay") closeDetail();
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key==="Escape") closeDetail();
+  });
+
+  document.addEventListener("click", function(e){
+    var card = e.target.closest && e.target.closest(".card");
+    if(card) openDetail(card.getAttribute("data-id"));
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key!=="Enter" && e.key!==" ") return;
+    var card = e.target.closest && e.target.closest(".card");
+    if(card){ e.preventDefault(); openDetail(card.getAttribute("data-id")); }
+  });
 
   // ---------- location controls ----------
   function populateCityPicker(){
